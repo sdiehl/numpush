@@ -72,7 +72,11 @@ the metadata and buffer the internal array.
 
 >>> nd = buffer(df.values)
 
->>> df2 = np.frombuffer(nd, dtype=dtype).reshape(shape)
+... sent over the wire ..
+
+>>> nd2 = np.frombuffer(nd, dtype=dtype).reshape(shape)
+
+>>> df2 = DataFrame(nd2, index=index, columns=columns)
 ```
 
 Code
