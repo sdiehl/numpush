@@ -34,6 +34,9 @@ Target Infastructure
     * MooseFS
     * Redis
 
+Note: This is indication of the direction of the project, quite a
+bit of it is incomplete at this time.
+
 Data
 ----
 
@@ -120,12 +123,12 @@ not difficult ( though very undocumented! ). To that end there are some
 *simple* shared memory methods included for doing *simple* shared memory
 array operations with mutex.
 
-For example one might want a shared memory-backed DataFrames and process
-is across an 8 cores.
+For example one might want a shared memory-backed DataFrame and to work
+on it across 8 cores.
 
-This could be done with ctypes hacks around the
-``multiprocessing.RawArray``, but it's ugly hacks. The
-``numpush.shmem`` module has a cleaner implementation.
+This could be done with ctypes hacks on ``multiprocessing.RawArray``,
+but they were ugly hacks. The ``numpush.shmem`` module has a cleaner
+implementation.
 
 
 ```python
