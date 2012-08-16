@@ -1,2 +1,2 @@
 all:
-	llvm-ld bitcode.ll example
+	llvm-ld bitcode.ll example.o

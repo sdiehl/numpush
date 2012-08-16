@@ -1,7 +1,6 @@
 import os
 import shutil
 import numpy as np
-from glob import glob
 from os.path import join as pjoin
 
 from distutils.core import setup, Command
@@ -34,6 +33,8 @@ def find_packages():
             continue
         packages.append(package)
     return packages
+
+# Adapted from the pyzmq setup.py realeased under the BSD.
 
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
