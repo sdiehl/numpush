@@ -1,5 +1,5 @@
 all:
-	python setup.py build_ext --inplace
+	python setup.py build_ext --inplace --debug
 
 valgrind:
 	pvalgrind python runtests.py

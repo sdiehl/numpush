@@ -1,5 +1,7 @@
 import os
 from libc.stdint cimport uint32_t, uint64_t
+
+# Shuould be identical to sysconf(_SC_PAGESIZE)
 from mmap import PAGESIZE
 
 cdef extern from "pthread.h" nogil:
@@ -30,6 +32,11 @@ cdef extern from "errno.h" nogil:
     enum: SF_MNOWAIT
     enum: SF_SYNC
     int errno
+
+SPLICE_MOVE = SPLICE_F_MOVE
+SPLICE_NONBLOCK = SPLICE_F_NONBLOCK
+SPLICE_MORE = SPLICE_F_MORE
+SPLICE_GIFT = SPLICE_F_GIFT
 
 cdef int _posix_splice(int fd_in, uint64_t *off_in, int fd_out,
         uint64_t *off_out, size_t nbytes, unsigned int flags):
@@ -110,9 +117,8 @@ cdef void* pthread_splice(void *p) nogil:
 # transfer between two file descriptors. The POSIX thread also
 # shares the same file descriptor as the Python process so we
 # have to be careful
-cdef void spawn(int fd1, int fd2, uint32_t fd1_offset, uint32_t fd2_offset, int nbytes, int flags=0):
+cdef void _spawn(int fd1, int fd2, uint32_t fd1_offset, uint32_t fd2_offset, int nbytes, int flags=0):
     # cython *grumble grumble*
-    #cdef sockinfo* params = {fd1, fd2, fd1_offset, fd2_offset, nbytes, flags}
     cdef pthread_t thread
     cdef spliceinfo *pms = NULL
     pms.fd1 = fd1
@@ -124,3 +130,27 @@ cdef void spawn(int fd1, int fd2, uint32_t fd1_offset, uint32_t fd2_offset, int 
 
     with nogil:
         pthread_create(&thread, NULL , pthread_splice, <void*>pms)
+
+def posix_splice_thread(fd1, fd2, fd1_offset=0, fd2_offset=0,
+        nbytes=PAGESIZE, flags=SPLICE_F_MOVE):
+
+    if type(fd1) is int:
+        fd1 = os.fdopen(fd1, 'r')
+
+    if type(fd2) is int:
+        fd2 = os.fdopen(fd2, 'w')
+
+    cdef uint64_t c_fd1offset = fd1_offset
+    cdef uint64_t c_fd2offset = fd2_offset
+    cdef size_t c_count = nbytes
+    cdef int c_flags = flags
+    cdef int rc
+
+    _spawn(
+        fd1.fileno(),
+        c_fd1offset,
+        fd2.fileno(),
+        c_fd2offset,
+        nbytes,
+        flags
+    )
