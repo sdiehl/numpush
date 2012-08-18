@@ -1,12 +1,14 @@
 import zmq
+import struct
 import ctypes
 import reductor
+from ctypes import sizeof
 
 import numpy as np
 from numpy import ndarray, array
 
 from pandas import DataFrame
-#from theano.tensor import Tensor
+from theano.tensor import Tensor
 from collections import namedtuple
 from datastructures import ReverseLookupDict
 
@@ -14,6 +16,12 @@ try:
     import msgpack as srl
 except ImportError:
     import cPickle as srl
+
+# ============
+# Socket Flags
+# ============
+
+COMPRESS = 0x01
 
 numpy_metadata  = namedtuple('metadata', 'shape dtype')
 tensor_metadata = namedtuple('metadata', 'shape dtype')
@@ -47,11 +55,13 @@ PANDASTS = b'\x00\x05'
 NETWORKX = b'\x00\x06'
 THEANO   = b'\x00\x07'
 
+PYTHONBYTECODE  = b'\x01\x01'
+
 type_coercions = {
     array     : NUMPYND,
     ndarray   : NUMPYND,
     DataFrame : PANDAS,
-    #Tensor    : THEANO,
+    Tensor    : THEANO,
 }
 
 class CannotCoerce(Exception):
@@ -60,6 +70,10 @@ class CannotCoerce(Exception):
 
     def __str__(self):
         return "Don't know how encode type %s over ZMQ" % ( self.unknown_type)
+
+# ===============
+# Data Structures
+# ===============
 
 def send_numpy(self, magic, obj, flags=0):
     numpy_metadata, narray = reductor.numpy_reduce(obj)
@@ -96,6 +110,10 @@ def recv_tensor(self, flags=0, copy=True, track=False):
     md = tensor_metadata(*mdload)
     nd = self.recv(flags=flags)
     return reductor.tensor_reconstruct(md, nd)
+
+# ====
+# Code
+# ====
 
 # Polymorphic ZMQ socket mixins for all supported scientific types
 def numsend(self, obj, **kwargs):

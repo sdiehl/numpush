@@ -1,3 +1,4 @@
+import os
 import sys
 import socket
 import platform
@@ -15,6 +16,7 @@ HOSTNAME  = socket.gethostname()
 PYPY      = hasattr(sys, 'pypy_version_info')
 CPYTHON   = not PYPY
 ZMQ       = zmq_version()
+SSE2      = 'sse2' in open('/proc/cpuinfo','r').read()
 
 try:
     socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDPLITE);
@@ -27,3 +29,10 @@ try:
     TIPC = True
 except:
     TIPC = False
+
+try:
+    os.stat('/usr/include/pthread.h')
+    PTHREADS = True
+except:
+    PTHREADS = False
+    pass
