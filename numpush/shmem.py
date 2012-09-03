@@ -17,8 +17,18 @@ def put_on_heap(na):
 
 def RawNumpy(array):
     mmap, address = put_on_heap(array)
-    mmap_nd = ndarray.__new__(ndarray, array.shape, dtype=array.dtype,
-            buffer=mmap, offset=0, order='C')
+    mmap_nd = ndarray.__new__(
+        ndarray,
+        array.shape,
+        dtype=array.dtype,
+        buffer=mmap,
+        offset=0,
+        order='C'
+    )
+    # Warning, this is a copy operation
+    # ---------------------------------
+    # Copy the values from the passed array into shared memory
+    # arena.
     mmap_nd[:] = array[:]
     assert mmap_nd.ctypes.data == address
     return mmap_nd
@@ -38,7 +48,6 @@ def SynchronizedNumpy(array, lock=None):
     # Copy the values from the passed array into shared memory
     # arena.
     mmap_nd[:] = array[:]
-
     assert mmap_nd.ctypes.data == address
     return SynchronizedArray(mmap_nd, lock=lock)
 

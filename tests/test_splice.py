@@ -16,7 +16,7 @@ def test_single():
 
     try:
         w = open('w', 'w+')
-        r = open('r', 'w+')
+        r = open('r', 'a+')
 
         w.write(DATA)
         w.flush()
@@ -36,7 +36,7 @@ def test_multithreaded():
 
     try:
         w = open('w', 'w+')
-        r = open('r', 'w+')
+        r = open('r', 'a+')
 
         w.write(DATA)
         w.flush()

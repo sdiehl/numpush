@@ -36,12 +36,6 @@ cdef extern from "errno.h" nogil:
     enum: SF_SYNC
     int errno
 
-cdef extern from "Python.h" nogil:
-    ctypedef struct PyThreadState
-    void PyEval_InitThreads()
-    PyThreadState* PyEval_SaveThread
-    void PyEval_RestoreThread(PyThreadState *tstate)
-
 ctypedef struct spliceinfo:
     int fd1
     int fd2
@@ -78,9 +72,6 @@ cdef int _posix_splice(int fd_in, uint64_t *off_in, int fd_out,
 
     return sent
 
-# Changed the signature a bit to match our common use case of 0, 0
-# offsets. If you need SPLICE_F_MORE then you probably just want
-# to use the sendfile implementation.
 def posix_splice(fd1, fd2, fd1_offset=0, fd2_offset=0,
         nbytes=PAGESIZE, flags=SPLICE_F_MOVE):
 
@@ -141,6 +132,9 @@ def posix_splice_thread(fd1, fd2, fd1_offset=0, fd2_offset=0,
 
     if type(fd2) is not int:
         fd2 = fd2.fileno()
+
+    # TODO: assert that one of these is a pipe. Otherwise we
+    # need to set up a loop to relay the data through a pipe
 
     cdef pthread_t thread
     cdef spliceinfo *pms = <spliceinfo*>malloc(sizeof(spliceinfo))
