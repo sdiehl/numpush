@@ -9,6 +9,11 @@ from Cython.Distutils import build_ext
 
 extensions = [
     Extension(
+        "numpush.posix_io.iothread",
+        ["numpush/posix_io/iothread.pyx"],
+        include_dirs=[],
+    ),
+    Extension(
         "numpush.posix_io.splice",
         ["numpush/posix_io/splice.pyx"],
         include_dirs=[],

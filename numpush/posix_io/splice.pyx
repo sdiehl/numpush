@@ -1,20 +1,22 @@
 import os
+import atexit
+
 from libc.stdint cimport uint32_t, uint64_t
-from libc.stdlib cimport malloc
+from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 
 # Shuould be identical to sysconf(_SC_PAGESIZE)
 from mmap import PAGESIZE
+
+from iothread import IOThread
 
 cdef extern from "pthread.h" nogil:
     ctypedef unsigned long int pthread_t
     ctypedef union pthread_attr_t:
         char __size[56]
         long int __align
-
     int pthread_create(pthread_t *thread, pthread_attr_t *attr,
-                             void *(*start_routine) (void *), void *arg)
-    int pthread_tryjoin_np (pthread_t __th, void **__thread_return)
-    int pthread_cancel (pthread_t __th)
+         void *(*start_routine) (void *), void *arg)
 
 cdef extern from "fcntl.h" nogil:
     ctypedef unsigned size_t
@@ -64,7 +66,7 @@ cdef int _posix_splice(int fd_in, uint64_t *off_in, int fd_out,
 
     # If fd_in is a pipe then off_in must be NULL
     with nogil:
-        sts = splice(fd_in, NULL, fd_out, NULL, 1024, 0)
+        sts = splice(fd_in, NULL, fd_out, NULL, nbytes, flags)
 
         if sts == -1:
             err = 1
@@ -112,60 +114,48 @@ def posix_splice(fd1, fd2, fd1_offset=0, fd2_offset=0,
 cdef void* pthread_splice(void *p) nogil:
     # cython *grumble grumble*
     cdef spliceinfo *pms = <spliceinfo*>(p)
+
     cdef int fd_in = pms.fd1
     cdef int fd_out = pms.fd2
     cdef uint64_t fd1_offset = pms.fd1_offset
     cdef uint64_t fd2_offset = pms.fd2_offset
     cdef size_t nbytes = pms.nbytes
     cdef int flags = pms.flags
+    cdef int rc
+    global errno
 
-    splice(fd_in, NULL, fd_out, NULL, 1024, 0)
+    rc = splice(fd_in, NULL, fd_out, NULL, nbytes, flags)
+    free(pms);
+
     return NULL
 
 # Spin a raw OS thread (no GIL!) to do background continuous data
 # transfer between two file descriptors. The POSIX thread also
 # shares the same file descriptor as the Python process so we
 # have to be a bit careful
-cdef void _spawn(int fd1, int fd2, uint32_t fd1_offset, uint32_t fd2_offset, int nbytes, int flags):
-    #cython *grumble grumble*
+def posix_splice_thread(fd1, fd2, fd1_offset=0, fd2_offset=0,
+        nbytes=PAGESIZE, flags=SPLICE_F_MOVE):
+
+    if type(fd1) is not int:
+        fd1 = fd1.fileno()
+
+    if type(fd2) is not int:
+        fd2 = fd2.fileno()
+
     cdef pthread_t thread
     cdef spliceinfo *pms = <spliceinfo*>malloc(sizeof(spliceinfo))
-
     pms.fd1 = fd1
     pms.fd2 = fd2
-    pms.fd1_offset = 0
-    pms.fd2_offset = 0
+    pms.fd1_offset = fd1_offset
+    pms.fd2_offset = fd2_offset
     pms.nbytes = nbytes
     pms.flags = flags
+
+    cdef int retval
 
     with nogil:
         pthread_create(&thread, NULL , pthread_splice, <void*>pms)
 
-def posix_splice_thread(fd1, fd2, fd1_offset=0, fd2_offset=0,
-        nbytes=PAGESIZE, flags=SPLICE_F_MOVE):
-
-    if type(fd1) is int:
-        fd1 = os.fdopen(fd1, 'r')
-
-    if type(fd2) is int:
-        fd2 = os.fdopen(fd2, 'w')
-
-    cdef uint64_t c_fd1offset = fd1_offset
-    cdef uint64_t c_fd2offset = fd2_offset
-
-    cdef size_t c_count = nbytes
-    cdef int c_flags = flags
-    cdef int rc
-
-    cdef int c_fd1 = fd1.fileno()
-    cdef int c_fd2 = fd2.fileno()
-
-    _spawn(
-        c_fd1,
-        c_fd1offset,
-        c_fd2,
-        c_fd2offset,
-        c_count,
-        c_flags
-    )
-    return -1
+    io = IOThread(thread, fd1, fd2)
+    atexit.register(io.ensure)
+    return io
