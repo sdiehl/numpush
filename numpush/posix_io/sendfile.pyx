@@ -78,3 +78,6 @@ def posix_sendfile(sock, fd, offset=0, nbytes=PAGESIZE):
         raise OSError(os.strerror(-rc))
     else:
         return rc
+
+def posix_sendfile_chunk():
+    pass

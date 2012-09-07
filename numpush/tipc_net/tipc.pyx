@@ -1,3 +1,4 @@
+from os import strerror
 from libc.sys cimport socket
 from libc.stdint cimport uint32_t, uint64_t, ssize_t
 
@@ -47,36 +48,34 @@ cdef extern from "linux/tipc.h":
         uint32_t lower
         uint32_t upper
 
-    ctypedef struct tipc_subscr
+    ctypedef struct tipc_subscr:
         struct tipc_name_seq seq
         uint32_t timeout
         uint32_t filter
         char usr_handle[8]
 
-cdef extern from "arpa/inet.h" nogil:
-    pass
+    ctypedef struct name:
+        struct tipc_name name
+        uint32_t domain
 
-cdef extern from "errno.h" nogil:
-    enum: EAGAIN
-    enum: EWOULDBLOCK
-    enum: EBADF
-    enum: EFAULT
-    enum: EINVAL
-    enum: EIO
-    enum: ENOMEM
-    enum: EBUSY
+    ctypedef union tipc_addr:
+        struct tipc_portid id
+        struct tipc_name_seq nameseq
+        struct name
 
-    enum: SF_NODISKIO
-    enum: SF_MNOWAIT
-    enum: SF_SYNC
-    int errno
+    ctypedef struct sockaddr_tipc:
+        unsigned short family
+        unsigned char  addrtype
+        signed   char  scope
+        union tipc_addr
 
-ctypedef struct sockaddr:
-    pass
+def tipc_socket(int socket_type, int flags):
+	int rc;
 
-cdef int tipc_socket_bind(sockaddr *address)
-    cdef int fd
-    sa_tipc.addrtype = TIPC_ADDR_NAMESEQ
+    with nogil:
+        rc = socket(AF_TIPC, socket_type, flags);
 
-    fd = socket(AF_TIPC, opts.socktype, opts.protocol)
-    return fd
+    if rc < 0:
+        raise OSError(strerror(rc))
+    else:
+        return rc

@@ -27,6 +27,15 @@ extensions = [
         ["numpush/moose_store/moose.pyx"],
         include_dirs=[],
     ),
+    Extension(
+        "numpush.zmq_blosc",
+        ["numpush/zmq_blosc.pyx"],
+        include_dirs=['include/blosc'],
+        libraries=['zmq', 'pthread'],
+        library_dirs=["blosc"],
+        extra_objects=["include/blosc/blosc.so"],
+        extra_compile_args=['-msse2'],
+    ),
 ]
 
 def find_packages():

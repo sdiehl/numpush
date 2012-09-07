@@ -11,6 +11,19 @@ distributed scientific Python applications.
 Target Infastructure
 --------------------
 
+* Libraries
+    * numpy
+    * pandas
+    * numba
+    * bitey
+    * llvm-py
+    * theano
+    * numexpr
+    * hdf5
+    * carray
+* Datastore Backends
+    * MooseFS
+    * Redis
 * Network transports
     * TIPC
     * ZeroMQ
@@ -20,19 +33,6 @@ Target Infastructure
     * splice
     * mmap
     * read/write
-* Libraries
-    * numpy
-    * pandas
-    * numba
-    * bitey
-    * llvm-py
-    * theano
-    * numexpr
-    * pytables
-    * carray
-* Datastore Backends
-    * MooseFS
-    * Redis
 
 Note: This is indication of the direction of the project, quite a
 bit of it is incomplete at this time.
@@ -47,7 +47,7 @@ data structures can be represented by two parts:
 2. Small bits of metadata
 
 (1) is a heavy object to move around, so we use fast transports (i.e.
-ZeroMQ, TIPC, UDP Lite ) that all act on a universal memoryview
+ZeroMQ, TIPC ) that all act on a universal memoryview
 interface doing low-level POSIX IO calls ( mmap, splice, sendfile )
 that don't require needless copying in userspace to send data and
 can delegate scheduling to the Linux kernel.
@@ -116,7 +116,7 @@ infrastructure.
 Shared Memory
 -------------
 
-Once data is at a remote target one often wants to fram it out to as
+Once data is at a remote target one often wants to farm it out to as
 many cores (i.e. through multiprocessing ) as possible all with the
 same shared memory source. For numpy derivative data structures this is
 not difficult ( though very undocumented! ). To that end there are some
@@ -165,7 +165,7 @@ Required
 --------
 
 * libzmq
-* Python 2.7.x ( memoryview is copiously )
+* Python 2.7.x ( memoryview is used copiously )
 * pyzmq 2.1.11
 * msgpack
 * Cython 0.16

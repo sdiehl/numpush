@@ -1,4 +1,5 @@
 import os
+import sys
 import atexit
 
 from libc.stdint cimport uint32_t, uint64_t
@@ -153,3 +154,41 @@ def posix_splice_thread(fd1, fd2, fd1_offset=0, fd2_offset=0,
     io = IOThread(thread, fd1, fd2)
     atexit.register(io.ensure)
     return io
+
+def posix_splice_fork(fd1, fd2, fd1_offset=0, fd2_offset=0,
+        nbytes=PAGESIZE, flags=SPLICE_F_MOVE):
+    if type(fd1) is not int:
+        fd1 = fd1.fileno()
+
+    if type(fd2) is not int:
+        fd2 = fd2.fileno()
+
+    pid = os.fork()
+
+    if pid == 0:
+        rc = splice(fd1, NULL, fd2, NULL, nbytes, flags)
+        if rc == 0:
+            sys.exit(0)
+        else:
+            sys.stderr.write('splice failed')
+            sys.exit(1)
+    else:
+        return pid
+
+cdef long splice_chunk(int pipe_fd, int fd_out, size_t nbytes, int flags):
+    # Splice from the pipe until the data is depeleted
+
+    cdef int calls = 0
+    cdef long written = 1
+    cdef long total = 0
+
+    while written > 0:
+        written = splice(pipe_fd, NULL, fd_out, NULL, nbytes, flags)
+
+        if written < 0:
+            raise IOError("Couldn't splice")
+
+        calls += 1
+        total += written
+
+    return (total, calls)
