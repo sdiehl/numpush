@@ -29,6 +29,8 @@ def RawNumpy(array):
     # ---------------------------------
     # Copy the values from the passed array into shared memory
     # arena.
+
+    # blosc?
     mmap_nd[:] = array[:]
     assert mmap_nd.ctypes.data == address
     return mmap_nd

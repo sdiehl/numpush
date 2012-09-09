@@ -5,19 +5,21 @@ import atexit
 from libc.stdint cimport uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport printf
+from posix.unistd cimport pipe, close
 
-# Shuould be identical to sysconf(_SC_PAGESIZE)
 from mmap import PAGESIZE
 
 from iothread import IOThread
 
 cdef extern from "pthread.h" nogil:
+    enum: PTHREAD_CANCEL_ASYNCHRONOUS
     ctypedef unsigned long int pthread_t
     ctypedef union pthread_attr_t:
         char __size[56]
         long int __align
     int pthread_create(pthread_t *thread, pthread_attr_t *attr,
          void *(*start_routine) (void *), void *arg)
+    int pthread_setcanceltype(int type, int *oldtype)
 
 cdef extern from "fcntl.h" nogil:
     ctypedef unsigned size_t
@@ -150,6 +152,7 @@ def posix_splice_thread(fd1, fd2, fd1_offset=0, fd2_offset=0,
 
     with nogil:
         pthread_create(&thread, NULL , pthread_splice, <void*>pms)
+        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL)
 
     io = IOThread(thread, fd1, fd2)
     atexit.register(io.ensure)
@@ -192,3 +195,58 @@ cdef long splice_chunk(int pipe_fd, int fd_out, size_t nbytes, int flags):
         total += written
 
     return (total, calls)
+
+cdef long splice_sockets(int sock1, int sock2, int flags):
+    #                 Unix Pipe
+    #           +-------------------+
+    # sock1 => fd[0] => Splice => fd[1] => sock2
+
+    # Splice two sockets using the splice() calls using an
+    # intermediary unix pipe.
+
+    # A unix pipe is ostensibly a in-kernel buffer between two arbitrary
+    # points so we still maintain zero-copy like behavior.
+
+    cdef int pipefd[2]
+    cdef uint64_t *start = <uint64_t*>0
+    cdef size_t size = 8194
+
+    cdef unsigned int status = 0
+    cdef unsigned long copied = 0
+    cdef ssize_t nr
+    cdef int ret
+    cdef int rc
+
+    rc = pipe(pipefd)
+
+    flags |= SPLICE_F_MORE | SPLICE_F_MOVE
+
+    while 1:
+        nr = splice(sock1, NULL, pipefd[1], NULL, size, flags)
+        if nr <= 0:
+            ret = nr
+            #break
+        while nr:
+            ret = splice(pipefd[0], NULL, sock2, NULL, nr, flags)
+            if ret <= 0:
+                break
+            nr -= ret
+
+    close(pipefd[0])
+    close(pipefd[1])
+    return ret
+
+def posix_splice_sockets(fd1, fd2, flags=0):
+    if type(fd1) is not int:
+        fd1 = fd1.fileno()
+
+    if type(fd2) is not int:
+        fd2 = fd2.fileno()
+
+    cdef int c_flags = flags
+
+    rc = splice_sockets(fd1, fd2, flags)
+
+    if rc < 0:
+        raise OSError(os.strerror(errno))
+    return rc

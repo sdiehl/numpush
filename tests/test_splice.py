@@ -1,11 +1,14 @@
 import _multiprocessing
 #from unittest2 import skip
+
 import sys
 import os
+import socket
 sys.path.append(os.getcwd())
 from numpush.posix_io.splice import \
     posix_splice, \
     posix_splice_thread, \
+    posix_splice_sockets, \
     SPLICE_MORE, SPLICE_MOVE
 
 DATA= 'a'*1024
