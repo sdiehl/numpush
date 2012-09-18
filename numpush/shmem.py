@@ -1,10 +1,16 @@
-from numpy import ndarray
+from numpy import ndarray, byte_bounds
 from pandas import DataFrame
 from functools import wraps
 
-from multiprocessing import RLock
 from multiprocessing.heap import BufferWrapper
-from multiprocessing.sharedctypes import SynchronizedBase
+
+def lock(arr):
+    arr.flags.writable = False
+    return byte_bounds(arr)
+
+def unlock(arr):
+    arr.flags.writable = True
+    return byte_bounds(arr)
 
 def put_on_heap(na):
     size = na.nbytes
@@ -25,12 +31,6 @@ def RawNumpy(array):
         offset=0,
         order='C'
     )
-    # Warning, this is a copy operation
-    # ---------------------------------
-    # Copy the values from the passed array into shared memory
-    # arena.
-
-    # blosc?
     mmap_nd[:] = array[:]
     assert mmap_nd.ctypes.data == address
     return mmap_nd
@@ -45,12 +45,9 @@ def SynchronizedNumpy(array, lock=None):
         offset = 0,
         order  = 'C'
     )
-    # Warning, this is a copy operation
-    # ---------------------------------
-    # Copy the values from the passed array into shared memory
-    # arena.
     mmap_nd[:] = array[:]
     assert mmap_nd.ctypes.data == address
+    # TODO: agnostic backend
     return SynchronizedArray(mmap_nd, lock=lock)
 
 def sync(f):
@@ -62,52 +59,6 @@ def sync(f):
         self.release()
     return wrapper
 
-class SynchronizedArray(SynchronizedBase):
-
-    def __init__(self, obj, lock=None):
-        self._obj = obj
-        self._lock = lock or RLock()
-        self.acquire = self._lock.acquire
-        self.release = self._lock.release
-
-    def __len__(self):
-        return len(self._obj)
-
-    def __getitem__(self, i):
-        self.acquire()
-        try:
-            return self._obj[i]
-        finally:
-            self.release()
-
-    def __setitem__(self, i, value):
-        self.acquire()
-        try:
-            self._obj[i] = value
-        finally:
-            self.release()
-
-    def __getslice__(self, start, stop):
-        self.acquire()
-        try:
-            return self._obj[start:stop]
-        finally:
-            self.release()
-
-    def __setslice__(self, start, stop, values):
-        self.acquire()
-        try:
-            self._obj[start:stop] = values
-        finally:
-            self.release()
-
-    def __iadd__(self, other):
-        with self._lock:
-            return self._obj.__iadd__(other)
-
-    def __imul__(self, other):
-        with self._lock:
-            return self._obj.__imul__(other)
 
 # Shared Memory Instances
 # -----------------------
@@ -122,14 +73,14 @@ def SDataFrame(df, mutex=False, lock=None):
     columns = df.columns.tolist()  # list
     return DataFrame(data=snd, index=index, columns=columns, dtype=None, copy=False)
 
-def SDiGraph(graph, mutex=False):
-    '''
-    Shared memory NetworkX graph.
-    '''
-    pass
-
 def STensor(tensor, mutex=False):
     '''
     Shared memory Theano tensor.
+    '''
+    pass
+
+def SDiGraph(graph, mutex=False):
+    '''
+    Shared memory NetworkX graph.
     '''
     pass

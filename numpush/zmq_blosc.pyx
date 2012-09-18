@@ -176,6 +176,7 @@ cdef class BloscContext:
     cdef void *handle
 
     def __init__(self, int io_threads=1):
+        #blosc_set_nthreads(env.CORES)
         blosc_set_nthreads(io_threads)
 
     def set_nthreads(n):
@@ -200,5 +201,4 @@ cdef class BloscContext:
 
 Context = BloscContext
 Socket  = BloscSocket
-
 __all__ = [ Context, Socket ]

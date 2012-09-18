@@ -176,11 +176,12 @@ def bitey_reconstruct(md, bitcode):
 
 LLVM  = 0
 UFUNC = 1
+GUFUNC = 1
 
 # This is a little hairy since Numba is still experimental.
 def numba_reduce(tr):
-    func = tr.func           # PyCodeObject
-    ret_type = tr.ret_type   # str
+    func      = tr.func      # PyCodeObject
+    ret_type  = tr.ret_type  # str
     arg_types = tr.arg_types # str
 
     return (func, ret_type, arg_types)
@@ -196,10 +197,12 @@ def numba_reconstruct(md, func, otype=LLVM):
     tr = Translate(func, ret_type, arg_types)
     tr.translate()
 
-    if otype == 'llvm':
+    if otype == LLVM:
         return tr.get_ctypes_func(llvm=True)
-    elif otype == 'ufunc':
+    elif otype == UFUNC:
         return tr.make_ufunc(llvm=True)
+    elif otype == GUFUNC:
+        pass
     else:
         raise Exception("Unknown numba cast")
 
@@ -207,11 +210,14 @@ def numba_reconstruct(md, func, otype=LLVM):
 # =======
 
 def numexpr_reduce(ne):
+    # Metadata
     inputsig    = ne.signature
     tempsig     = ne.tempsig
-    bytecode    = ne.program
     input_names = ne.input_names
     constants   = ne.constants
+
+    # Bytecode
+    bytecode    = ne.program
 
     return (inputsig, tempsig, bytecode, constants, input_names)
 

@@ -6,7 +6,7 @@ import resource
 from numpy.distutils.cpuinfo import cpuinfo
 from zmq import zmq_version
 
-CPU       = cpuinfo
+CPU       = cpuinfo()
 PLATFORM  = platform.system()
 ARCH      = platform.architecture()
 MAX_PROCS = resource.getrlimit(resource.RLIMIT_NPROC)[1]
@@ -16,13 +16,7 @@ HOSTNAME  = socket.gethostname()
 PYPY      = hasattr(sys, 'pypy_version_info')
 CPYTHON   = not PYPY
 ZMQ       = zmq_version()
-SSE2      = 'sse2' in open('/proc/cpuinfo','r').read()
-
-try:
-    socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDPLITE);
-    UDPLITE = True
-except:
-    UDPLITE = False
+SSE2      = CPU._has_sse2()
 
 try:
     socket.socket(socket.AF_TIPC, socket.SOCK_RDM)
@@ -35,4 +29,3 @@ try:
     PTHREADS = True
 except:
     PTHREADS = False
-    pass
