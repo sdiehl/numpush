@@ -1,6 +1,16 @@
 numpush
 =======
 
+Deprecated project. I am abandoning the Numpush project in favor of
+working on Blaze at @ContinuumIO. Blaze is the future of shared memory
+and distributed array computations. The project will be public in
+November. See:
+
+    https://github.com/ContinuumIO/blaze
+
+
+
+
 Efficient distribution for scientific Python data structures and code.
 
 Numpush is not a clustering or map-reduce solution, it is merely
