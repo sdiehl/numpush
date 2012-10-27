@@ -6,8 +6,8 @@ working on Blaze at @ContinuumIO. Blaze is the future of shared memory
 and distributed array computations. The project will be public in
 November. See:
 
-    https://github.com/ContinuumIO/blaze
-    https://speakerdeck.com/sdiehl/blaze-next-generation-numpy
+* https://github.com/ContinuumIO/blaze
+* https://speakerdeck.com/sdiehl/blaze-next-generation-numpy
 
 numpush
 =======
